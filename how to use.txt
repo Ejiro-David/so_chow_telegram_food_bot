@@ -1,0 +1,363 @@
+================================================================================
+SOCHOW FOOD ORDERING BOT - SETUP & ADMIN GUIDE
+================================================================================
+Bot: @sochow_food_bot
+
+================================================================================
+1. REQUIREMENTS
+================================================================================
+
+✓ Computer (Mac or Windows)
+✓ Python 3.8+ installed
+✓ Telegram account
+✓ Bot token (already created for @sochow_food_bot)
+
+Check Python:
+  Mac: python3 --version
+  Windows: python --version
+
+================================================================================
+2. ONE-TIME SETUP
+================================================================================
+
+STEP 1: Get Your Admin Telegram ID
+-----------------------------------
+1. Open Telegram → Search "@userinfobot"
+2. Start chat → It shows your ID (e.g., 123456789)
+3. SAVE this number!
+
+STEP 2: Install Dependencies
+-----------------------------
+Open Terminal/Command Prompt in the SOCHOW folder:
+
+Mac:
+  cd /path/to/sochow
+  python3 -m venv venv
+  source venv/bin/activate
+  pip install -r requirements.txt
+
+Windows:
+  cd C:\path\to\sochow
+  python -m venv venv
+  venv\Scripts\activate
+  pip install -r requirements.txt
+
+STEP 3: Create .env Configuration File
+---------------------------------------
+In the SOCHOW folder, create a file named ".env" (include the dot!)
+
+Paste this and fill in YOUR details:
+
+BOT_TOKEN=your_bot_token_here
+ADMIN_CHAT_ID=your_telegram_id_from_step_1
+PAYMENT_BANK=First Bank
+PAYMENT_ACCOUNT=1234567890
+PAYMENT_NAME=SOCHOW
+PORT=3000
+
+Replace:
+- BOT_TOKEN: Get from developer who created @sochow_food_bot
+- ADMIN_CHAT_ID: Your ID from Step 1
+- PAYMENT_BANK, PAYMENT_ACCOUNT, PAYMENT_NAME: Your payment details
+
+Save and close.
+
+================================================================================
+3. RUNNING THE BOT (Daily Use)
+================================================================================
+
+STEP 1: Start the Bot
+----------------------
+Mac:
+  cd /path/to/sochow
+  source venv/bin/activate
+  python bot.py
+
+Windows:
+  cd C:\path\to\sochow
+  venv\Scripts\activate
+  python bot.py
+
+Expected output:
+  ✅ Database initialized
+  ✅ Menu items seeded
+  ✅ SOCHOW Bot Ready
+  📡 API Server running on http://localhost:3000
+  🤖 Telegram bot starting...
+
+⚠️ KEEP THIS WINDOW OPEN! Closing it stops the bot.
+
+STEP 2: Open Admin Dashboard
+-----------------------------
+Double-click "index.html" in the SOCHOW folder
+→ Opens in your browser
+→ Shows Menu Management, Orders, and Payments tabs
+
+If empty: Make sure bot is running (Step 1)
+
+================================================================================
+SECTION 4: USING THE ADMIN DASHBOARD
+================================================================================
+
+TAB 1: MENU MANAGEMENT
+-----------------------
+This is where you control what food items customers can order.
+
+TO ADD A NEW MENU ITEM:
+1. Scroll to "Add New Item" section (bottom of page)
+2. Fill in:
+   - Item Name: e.g., "Jollof Rice Special"
+   - Price (₦): e.g., 5000 (enter numbers only, no commas)
+   - Description: Brief description of the dish
+3. Click "Add Item"
+4. The item appears in the menu list above
+
+TO UPLOAD A MENU PHOTO:
+1. Go to "Menu Image" section
+2. Click "Choose File"
+3. Select a nice photo of your menu or food
+4. Click "Upload Menu Image"
+5. The photo will be shown to customers
+
+TO MARK AN ITEM UNAVAILABLE (Sold Out):
+1. Find the item in the menu list
+2. Click the red "Mark Unavailable" button
+3. Customers won't see this item until you mark it available again
+
+TO MARK AN ITEM AVAILABLE AGAIN:
+1. Find the item in the menu list
+2. Click the green "Mark Available" button
+3. Customers can now order it
+
+TO DELETE AN ITEM PERMANENTLY:
+1. Find the item in the menu list
+2. Click the "Delete" button (⚠️ This cannot be undone!)
+
+TAB 2: ORDERS
+-------------
+This shows all customer orders in real-time.
+
+UNDERSTANDING ORDER STATUS:
+- ⏳ Processing: Order just came in, waiting for payment verification
+- 🍴 Prepared: Kitchen has finished preparing the food
+- 🚚 Out for Delivery: Order is with the rider
+- ✅ Delivered: Customer received the order
+- ❌ Cancelled: Order was cancelled
+
+TO UPDATE ORDER STATUS:
+1. Find the order in the list
+2. Click "Update Status" dropdown
+3. Select new status:
+   - "Prepared" when kitchen is done
+   - "Out for Delivery" when rider picks up
+   - "Delivered" when customer confirms receipt
+4. If selecting "Out for Delivery", enter rider's phone number
+5. Click "Update"
+6. Customer automatically gets a Telegram notification!
+
+TO CANCEL AN ORDER:
+1. Find the order
+2. Click "Cancel Order" button
+3. Customer gets notified automatically
+
+TO MESSAGE A CUSTOMER:
+1. Find their order
+2. Click "Send Query" button
+3. Type your message (e.g., "Is this address correct?")
+4. Click "Send"
+5. Message goes directly to their Telegram
+
+TAB 3: PAYMENTS
+---------------
+This is where you verify customer payment receipts.
+
+PAYMENT VERIFICATION WORKFLOW:
+1. Customer places order on Telegram
+2. Customer pays to your bank account
+3. Customer uploads payment receipt photo to the bot
+4. Receipt appears here in "Pending Verification" section
+
+TO APPROVE A PAYMENT:
+1. Look at the receipt image
+2. Check if:
+   - Amount matches the order total
+   - Payment went to your account
+   - Receipt looks genuine
+3. If everything is correct, click "✅ Approve"
+4. Customer gets instant confirmation on Telegram
+5. Order status changes to "Processing"
+
+TO REJECT A PAYMENT:
+1. If receipt is fake, wrong amount, or unclear
+2. Click "❌ Deny"
+3. Order stays as "Pending Payment"
+4. Contact customer via "Send Query" to clarify
+
+================================================================================
+SECTION 5: CUSTOMER EXPERIENCE (What Your Customers Do)
+================================================================================
+
+1. CUSTOMER STARTS:
+   - Opens Telegram
+   - Searches for your bot (username you created with BotFather)
+   - Clicks "START"
+
+2. CUSTOMER ORDERS:
+   - Clicks "🍽️ View Menu"
+   - Bot shows each food item with photo and price
+   - Customer clicks "➕ Add to Cart" for items they want
+   - Can increase/decrease quantities
+   - Clicks "✅ Checkout"
+
+3. CUSTOMER PROVIDES DETAILS:
+   - Bot asks for delivery address
+   - Bot asks for phone number
+   - Bot shows order summary with your bank details
+
+4. CUSTOMER PAYS:
+   - Transfers money to your account
+   - Takes screenshot of receipt
+   - Sends receipt photo to the bot
+
+5. CUSTOMER WAITS:
+   - You verify payment (see Tab 3 above)
+   - Customer gets confirmation
+   - Customer can track order status anytime by clicking "📦 Track Order"
+
+================================================================================
+SECTION 6: DAILY WORKFLOW EXAMPLE
+================================================================================
+
+MORNING (Before Opening):
+-------------------------
+1. Open Terminal
+2. Navigate to SOCHOW folder: cd /Users/teerex/sochow
+3. Activate environment: source venv/bin/activate
+4. Start bot: python bot.py
+5. Open index.html in browser
+6. Check menu items - mark anything unavailable today
+7. Upload today's special menu photo if needed
+
+DURING THE DAY:
+---------------
+1. Keep Terminal window open (bot running)
+2. Keep browser tab open (admin dashboard)
+3. Watch for new orders in "Orders" tab
+4. Check "Payments" tab for receipts to verify
+5. Update order status as food is prepared and delivered
+6. Use "Send Query" if you need to contact customers
+
+EVENING (After Closing):
+------------------------
+1. Mark sold-out items as unavailable
+2. Review all orders - make sure all are delivered or cancelled
+3. In Terminal window, press Ctrl+C to stop the bot
+4. Close browser tab
+5. Tomorrow, repeat the morning routine!
+
+================================================================================
+SECTION 7: TROUBLESHOOTING COMMON ISSUES
+================================================================================
+
+PROBLEM: Bot doesn't respond on Telegram
+SOLUTION:
+- Check if Terminal shows "🤖 Telegram bot starting..."
+- Verify BOT_TOKEN in .env file is correct
+- Make sure you started the bot with: python bot.py
+- Try stopping (Ctrl+C) and restarting the bot
+
+PROBLEM: Admin dashboard is empty/blank
+SOLUTION:
+- Make sure bot is running (see Terminal window)
+- Check that you're opening index.html (double-click it)
+- Refresh the browser page (press F5 or Cmd+R)
+- Make sure PORT in .env is 3000
+
+PROBLEM: Orders not showing up
+SOLUTION:
+- Click "Refresh Orders" button in dashboard
+- Make sure customer actually completed checkout
+- Check Terminal window for any error messages
+
+PROBLEM: Customer can't see menu photos
+SOLUTION:
+- Make sure photos are in the "uploads" folder
+- Photos must match the exact names listed in bot.py
+- Try uploading menu image again in Menu Management tab
+
+PROBLEM: "Port already in use" error
+SOLUTION:
+- Another program is using port 3000
+- Change PORT in .env to 3001 or 3002
+- Restart the bot
+
+PROBLEM: Customer didn't get payment confirmation
+SOLUTION:
+- Check "Payments" tab - verify the receipt manually
+- If you already clicked Approve, check "Orders" tab
+- Customer can check status by sending /start to bot again
+
+================================================================================
+SECTION 8: IMPORTANT TIPS & BEST PRACTICES
+================================================================================
+
+✅ DO:
+- Keep the Terminal window open while bot is running
+- Check the Payments tab regularly (every 15-30 minutes during busy hours)
+- Update order status promptly so customers know what's happening
+- Respond to customer queries quickly
+- Keep your menu updated (mark items unavailable when sold out)
+- Backup your sochow.db file regularly (this is your database!)
+
+❌ DON'T:
+- Don't close Terminal while bot is running (customers can't order!)
+- Don't share your .env file (contains sensitive tokens)
+- Don't approve suspicious payment receipts
+- Don't delete the "uploads" folder (contains all photos)
+- Don't edit bot.py unless you know Python programming
+- Don't run multiple copies of the bot at the same time
+
+================================================================================
+SECTION 9: GETTING HELP
+================================================================================
+
+If you run into issues not covered here:
+
+1. Check the Terminal window for error messages (red text)
+2. Make sure all steps in Section 2 (Setup) were completed
+3. Try stopping the bot (Ctrl+C) and starting it again
+4. Check that your .env file has the correct information
+5. Make sure you're connected to the internet
+
+Common Error Messages:
+- "Invalid token": BOT_TOKEN in .env is wrong
+- "Module not found": Run pip install -r requirements.txt again
+- "Permission denied": Make sure you're in the right folder
+
+================================================================================
+SECTION 10: FILE REFERENCE (What Each File Does)
+================================================================================
+
+Files you should KNOW ABOUT:
+- bot.py: The main program (don't edit unless you know Python)
+- index.html: The admin dashboard (opens in browser)
+- .env: Your configuration and secrets (KEEP THIS SAFE!)
+- requirements.txt: List of software needed (don't edit)
+- sochow.db: Your database (contains all orders, menu, customers)
+- uploads/: Folder containing all photos (receipts and menu images)
+
+Files you can IGNORE:
+- README.md: Technical documentation
+- note.txt: This file you're reading now!
+- venv/: Virtual environment folder (created automatically)
+
+================================================================================
+END OF HANDOVER INSTRUCTIONS
+================================================================================
+
+Keep this file safe! You can always refer back to it whenever you need help.
+
+Good luck with your SOCHOW food ordering business! 🍽️
+
+Last updated: January 8, 2026
+

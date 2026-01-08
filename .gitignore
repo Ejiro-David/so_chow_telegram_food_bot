@@ -1,0 +1,31 @@
+# Python virtual environment
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment variables (NEVER commit this!)
+.env
+
+# Database
+sochow.db
+sochow.db-shm
+sochow.db-wal
+
+# User uploads (receipts, menu images)
+uploads/
+
+
+
+
+# Node modules
+node_modules/
+package-lock.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db

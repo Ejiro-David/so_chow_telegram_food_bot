@@ -1,0 +1,196 @@
+================================================================================
+SOCHOW FOOD ORDERING BOT - SETUP & ADMIN GUIDE
+================================================================================
+Bot: @sochow_food_bot
+
+================================================================================
+1. REQUIREMENTS
+================================================================================
+
+✓ Computer (Mac or Windows)
+✓ Python 3.8+ installed
+✓ Telegram account
+✓ Bot token (already created for @sochow_food_bot)
+
+Check Python:
+  Mac: python3 --version
+  Windows: python --version
+
+================================================================================
+2. ONE-TIME SETUP
+================================================================================
+
+STEP 1: Get Your Admin Telegram ID
+-----------------------------------
+1. Open Telegram → Search "@userinfobot"
+2. Start chat → It shows your ID (e.g., 123456789)
+3. SAVE this number!
+
+STEP 2: Install Dependencies
+-----------------------------
+Open Terminal/Command Prompt in the SOCHOW folder:
+
+Mac:
+  cd /path/to/sochow
+  python3 -m venv venv
+  source venv/bin/activate
+  pip install -r requirements.txt
+
+Windows:
+  cd C:\path\to\sochow
+  python -m venv venv
+  venv\Scripts\activate
+  pip install -r requirements.txt
+
+STEP 3: Create .env Configuration File
+---------------------------------------
+In the SOCHOW folder, create a file named ".env" (include the dot!)
+
+Paste this and fill in YOUR details:
+
+BOT_TOKEN=your_bot_token_here
+ADMIN_CHAT_ID=your_telegram_id_from_step_1
+PAYMENT_BANK=First Bank
+PAYMENT_ACCOUNT=1234567890
+PAYMENT_NAME=SOCHOW
+PORT=3000
+
+Replace:
+- BOT_TOKEN: Get from developer who created @sochow_food_bot
+- ADMIN_CHAT_ID: Your ID from Step 1
+- PAYMENT_BANK, PAYMENT_ACCOUNT, PAYMENT_NAME: Your payment details
+
+Save and close.
+
+================================================================================
+3. RUNNING THE BOT (Daily Use)
+================================================================================
+
+STEP 1: Start the Bot
+----------------------
+Mac:
+  cd /path/to/sochow
+  source venv/bin/activate
+  python bot.py
+
+Windows:
+  cd C:\path\to\sochow
+  venv\Scripts\activate
+  python bot.py
+
+Expected output:
+  ✅ Database initialized
+  ✅ Menu items seeded
+  ✅ SOCHOW Bot Ready
+  📡 API Server running on http://localhost:3000
+  🤖 Telegram bot starting...
+
+⚠️ KEEP THIS WINDOW OPEN! Closing it stops the bot.
+
+STEP 2: Open Admin Dashboard
+-----------------------------
+Double-click "index.html" in the SOCHOW folder
+→ Opens in your browser
+→ Shows Menu Management, Orders, and Payments tabs
+
+If empty: Make sure bot is running (Step 1)
+
+================================================================================
+4. ADMIN DASHBOARD GUIDE
+================================================================================
+
+MENU MANAGEMENT TAB
+-------------------
+Add Item: Fill name, price (₦), description → Click "Add Item"
+Upload Menu Photo: Choose file → Click "Upload Menu Image"
+Mark Unavailable: Click red button (sold out items)
+Mark Available: Click green button (back in stock)
+Delete: Remove item permanently (⚠️ cannot undo)
+
+ORDERS TAB
+----------
+View all customer orders in real-time
+
+Order Status:
+  ⏳ Processing → 🍴 Prepared → 🚚 Out for Delivery → ✅ Delivered
+
+Update Status:
+  1. Select new status from dropdown
+  2. Enter rider phone (if "Out for Delivery")
+  3. Click "Update"
+  → Customer gets automatic Telegram notification
+
+Cancel Order: Click "Cancel" → Customer notified
+Send Query: Click "Send Query" → Type message → Sends to customer's Telegram
+
+PAYMENTS TAB
+------------
+Verify customer payment receipts
+
+Workflow:
+  1. Customer orders → Pays → Uploads receipt to bot
+  2. Receipt appears in "Pending Verification"
+  3. Check: Amount correct? Payment to your account? Genuine?
+  4. Click "✅ Approve" or "❌ Deny"
+  → Customer gets instant notification
+
+================================================================================
+5. CUSTOMER FLOW
+================================================================================
+
+1. Customer opens Telegram → Searches "@sochow_food_bot" → Clicks START
+2. Clicks "🍽️ View Menu" → Sees food items with photos
+3. Clicks "➕ Add to Cart" → Adjusts quantities → "✅ Checkout"
+4. Enters delivery address and phone number
+5. Bot shows order summary + your bank details
+6. Customer pays → Screenshots receipt → Sends to bot
+7. You verify in Payments tab → Customer gets confirmation
+8. Customer tracks order status anytime via "📦 Track Order"
+
+================================================================================
+6. DAILY ROUTINE
+================================================================================
+
+Morning:
+  Mac: cd /path/to/sochow → source venv/bin/activate → python bot.py
+  Windows: cd C:\path\to\sochow → venv\Scripts\activate → python bot.py
+  Open index.html → Check menu → Upload daily special photo
+
+During Day:
+  Keep Terminal/Command Prompt open
+  Monitor Orders and Payments tabs
+  Update order status as food is prepared/delivered
+
+Evening:
+  Mark sold-out items unavailable
+  Press Ctrl+C to stop bot
+  Repeat tomorrow
+
+================================================================================
+7. TROUBLESHOOTING
+================================================================================
+
+Bot not responding: Check Terminal shows "🤖 bot starting" → Verify BOT_TOKEN in .env
+Dashboard empty: Bot must be running → Refresh browser (F5)
+Orders missing: Click "Refresh Orders" → Check Terminal for errors
+Port error: Change PORT in .env to 3001 → Restart bot
+Photos not showing: Check uploads/ folder → Reupload menu image
+
+================================================================================
+8. IMPORTANT NOTES
+================================================================================
+
+✅ DO: Keep Terminal open while operating, check Payments regularly, backup sochow.db
+❌ DON'T: Close Terminal during business hours, share .env file, delete uploads/
+
+Files:
+  - bot.py: Main program (don't edit)
+  - index.html: Admin dashboard
+  - .env: Your secrets (KEEP SAFE!)
+  - sochow.db: Database (all orders/customers)
+  - uploads/: All photos
+
+================================================================================
+
+Last updated: January 8, 2026
+
