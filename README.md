@@ -1,6 +1,6 @@
 # SOCHOW - Telegram Food Ordering Bot 🍽️
 
-Lightweight Python implementation with Flask API + SQLite
+A complete Telegram-based food ordering system where customers browse menus, build carts, checkout, and upload payment receipts for manual verification. Admins manage menu items, verify payments, and track orders through a web dashboard. Built with Python (Telegram bot + Flask API) and SQLite for lightweight deployment.
 
 ## 📦 Installation
 
