@@ -770,10 +770,15 @@
            STATE MANAGEMENT:
            - menuItems: Array of menu item objects
            - orders: Array of order objects
-           Both are in-memory and sync with bot.js API
+           Both are in-memory and sync with bot.py API
         */
         
-        // API Base URL - points to Express server in bot.js
+        // ======================================================
+        // API Configuration
+        // ======================================================
+        // For LOCAL development: Use http://localhost:3000/api
+        // For PRODUCTION (Render.com): Replace with your deployment URL
+        // Example: const API_BASE = 'https://sochow-bot.onrender.com/api';
         const API_BASE = 'http://localhost:3000/api';
 
         // In-memory state (synced with database via API calls)

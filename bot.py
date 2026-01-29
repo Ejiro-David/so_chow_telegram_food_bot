@@ -170,9 +170,9 @@ def link_menu_photos():
     
     # Direct mapping of menu item ID to your actual filenames
     photo_mapping = {
-        1: 'Assorted Pepper Sauce\t.jpeg',
+        1: 'Assorted Pepper Sauce .jpeg',
         2: '02-egusi-soup.jpeg',
-        3: 'Ilasa Soup (Family Bowl)\t.jpeg',
+        3: 'Ilasa Soup (Family Bowl) .jpeg',
         4: 'Boiled Plantain & Pepper Mix.jpeg',
         5: 'Steamed rice served with aromatic Nigerian curry chicken sauce.jpeg',
         6: 'Palm-oil infused jollof with smoked fish, ponmo & egg.jpeg',
@@ -186,12 +186,12 @@ def link_menu_photos():
     updated_count = 0
     
     for item_id, filename in photo_mapping.items():
-        filepath = f'uploads/{filename}'
+        filepath = f'uploads/menu/{filename}'
         
         # Check if file exists before updating database
         if os.path.exists(filepath):
             db.execute('UPDATE menu_items SET image_url = ? WHERE id = ?', 
-                      (f'/uploads/{filename}', item_id))
+                      (f'/uploads/menu/{filename}', item_id))
             updated_count += 1
             print(f'✅ Item {item_id} → {filename}')
         else:
@@ -339,7 +339,8 @@ async def show_menu(query, user_id):
         
         if item['image_url']:
             try:
-                photo_path = f"uploads/{os.path.basename(item['image_url'])}"
+                # image_url already has /uploads/menu/ prefix
+                photo_path = item['image_url'].lstrip('/')
                 if os.path.exists(photo_path):
                     with open(photo_path, 'rb') as photo_file:
                         await query.message.reply_photo(
@@ -536,11 +537,11 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     file = await context.bot.get_file(photo.file_id)
     file_path = f"receipt_{order['id']}_{datetime.now().timestamp()}.jpg"
     
-    await file.download_to_drive(f"uploads/{file_path}")
+    await file.download_to_drive(f"uploads/receipts/{file_path}")
     
     db = get_db()
     db.execute('INSERT INTO receipts (order_id, user_id, image_url) VALUES (?, ?, ?)',
-               (order['id'], user['id'], f'/uploads/{file_path}'))
+               (order['id'], user['id'], f'/uploads/receipts/{file_path}'))
     db.commit()
     db.close()
     
@@ -602,6 +603,7 @@ CORS(app)
 
 @app.route('/uploads/<path:filename>')
 def serve_upload(filename):
+    """Serve uploaded files from uploads/, uploads/menu/, or uploads/receipts/"""
     return send_from_directory('uploads', filename)
 
 @app.route('/api/menu/items', methods=['GET'])
@@ -651,9 +653,9 @@ def upload_menu():
     
     file = request.files['menu_image']
     filename = f"menu_{datetime.now().timestamp()}.jpg"
-    file.save(f"uploads/{filename}")
+    file.save(f"uploads/menu/{filename}")
     
-    image_url = f"/uploads/{filename}"
+    image_url = f"/uploads/menu/{filename}"
     db = get_db()
     db.execute('''INSERT OR REPLACE INTO menu_config (id, menu_image_url, updated_at) 
                   VALUES (1, ?, CURRENT_TIMESTAMP)''', (image_url,))

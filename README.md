@@ -1,90 +1,198 @@
 # SOCHOW - Telegram Food Ordering Bot 🍽️
 
-A complete Telegram-based food ordering system where customers browse menus, build carts, checkout, and upload payment receipts for manual verification. Admins manage menu items, verify payments, and track orders through a web dashboard. Built with Python (Telegram bot + Flask API) and SQLite for lightweight deployment.
+A complete Telegram-based food ordering system where customers browse menus, place orders, and upload payment receipts. Admins manage everything through a web dashboard.
 
-## 📦 Installation
+---
 
-```bash
-# Install Python dependencies (only 4!)
-pip install -r requirements.txt
-```
+## 📋 **What This Is**
 
-## ⚙️ Configuration
+**Technology Stack:**
+- **Backend:** Python (Flask + python-telegram-bot)
+- **Database:** SQLite (single file database)
+- **Admin Panel:** HTML/CSS/JavaScript (no framework, just open the file)
+- **Bot Platform:** Telegram
 
-1. Create `.env` file from template:
-```bash
-cp .env.example .env
-```
+**What It Does:**
+1. Customers interact with Telegram bot to browse menu and order food
+2. Customers upload payment receipts after ordering
+3. Admin verifies payments and manages orders via web dashboard
+4. Admin updates order status (processing → prepared → out for delivery → delivered)
+5. All data stored in local SQLite database
 
-2. Get your Telegram bot token from [@BotFather](https://t.me/botfather)
+---
 
-3. Get your Telegram user ID from [@userinfobot](https://t.me/userinfobot)
-
-4. Edit `.env` and add your tokens
-
-## 🚀 Running
-
-```bash
-python bot.py
-```
-
-This starts:
-- ✅ Telegram bot (polling for messages)
-- ✅ Flask API server on port 3000
-- ✅ SQLite database (auto-created)
-
-## 🖥️ Admin Dashboard
-
-Open `index.html` in your browser (double-click the file)
-
-Dashboard connects to `http://localhost:3000/api`
-
-## 📊 File Structure
+## 📂 **Project Structure**
 
 ```
 sochow/
-├── bot.py              # Main bot + API server (Python)
-├── index.html          # Admin dashboard (vanilla JS)
-├── sochow.db           # SQLite database (auto-created)
-├── uploads/            # Receipt & menu images
-├── .env                # Environment variables
-├── requirements.txt    # Python dependencies
-└── README.md          # This file
+├── bot.py                      # Main application (Telegram bot + Flask API server)
+├── index.html                  # Admin dashboard (open in browser)
+├── sochow.db                   # SQLite database (auto-created on first run)
+├── requirements.txt            # Python dependencies (only 4 packages)
+├── .env                        # Environment variables (YOU CREATE THIS)
+├── .env.example                # Template for .env file
+├── uploads/
+│   ├── menu/                   # Food photos for menu items
+│   ├── receipts/               # Customer payment receipts
+│   ├── sochow-logo.png         # Logo used in admin panel
+│   └── brand.jpeg              # Brand assets
+├── README.md                   # This file (project overview)
+└── OWNER_MANUAL.md             # Complete setup & usage guide
 ```
 
-## 🔧 Development
+---
 
-- **Python**: 3.8+ required
-- **No Node.js needed!**
-- **Dependencies**: Only 4 packages (~5MB total vs 100MB+ for Node)
+## 🔄 **How It Works**
 
-## 📱 Customer Flow
+### **Customer Journey:**
+1. Customer opens Telegram → searches for your bot
+2. Sends `/start` → sees menu with photos and prices
+3. Adds items to cart → proceeds to checkout
+4. Enters delivery address and phone number
+5. Bot shows payment details (bank account info)
+6. Customer pays via bank transfer → uploads receipt photo to bot
+7. Waits for admin to verify payment
+8. Receives order confirmation and tracking updates
 
-1. `/start` → Main menu
-2. View menu → Add items to cart
-3. Checkout → Enter address & phone
-4. Upload payment receipt
-5. Admin verifies → Order confirmed
-6. Track order status
+### **Admin Journey:**
+1. Admin runs `python bot.py` in terminal (starts bot + API server)
+2. Opens `index.html` in browser (admin dashboard)
+3. Dashboard shows:
+   - **Menu Management:** Add/edit dishes, upload photos, set prices
+   - **Orders Queue:** All pending orders with customer details
+   - **Payment Verification:** Review receipt photos, approve/deny
+   - **Order Tracking:** Update status as order progresses
+4. Admin clicks "Verify Payment" on receipts → customer gets notified
+5. Admin updates order status → customer receives real-time Telegram updates
+6. All actions logged in database
 
-## 👨‍💼 Admin Flow
+### **Data Flow:**
+```
+Telegram Bot ←→ bot.py (Flask API) ←→ sochow.db (SQLite)
+                    ↕
+            index.html (Admin Dashboard)
+```
 
-1. Open `index.html` in browser
-2. Add menu items
-3. Upload menu image
-4. Verify payments (approve/deny)
-5. Update order status
-6. Send messages to customers
+---
 
-## 🐛 Troubleshooting
+## ⚙️ **Technical Details**
 
-- **Bot not responding**: Check BOT_TOKEN in .env
-- **Admin dashboard empty**: Make sure bot.py is running
-- **CORS errors**: API must be on http://localhost:3000
+### **Dependencies:**
+```
+python-telegram-bot==20.7    # Telegram bot framework
+flask==3.0.0                 # Web server for API + admin dashboard
+flask-cors==4.0.0            # Allow browser to access API
+python-dotenv==1.0.0         # Load environment variables from .env
+```
 
-## 🎯 Production Deployment
+### **Database Tables:**
+- `users` - Customer information from Telegram
+- `menu_items` - Restaurant menu with photos and prices
+- `carts` - Active shopping carts
+- `cart_items` - Items in each cart
+- `orders` - Placed orders with delivery info
+- `receipts` - Payment receipt uploads
+- `menu_config` - Full menu image
+- `admin_actions_log` - Audit trail
 
-**Recommended:** PythonAnywhere, Railway, or Render
+### **API Endpoints:**
+```
+GET    /api/menu/items         - Fetch all menu items
+POST   /api/menu/items         - Add new menu item
+PATCH  /api/menu/items/:id     - Update menu item
+DELETE /api/menu/items/:id     - Delete menu item
+POST   /api/menu/upload        - Upload menu image
 
-All support Python + Flask out of the box!
-# so_chow_telegram_food_bot
+GET    /api/orders             - Fetch all orders
+POST   /api/orders/:id/verify  - Verify payment (approve/deny)
+PATCH  /api/orders/:id/status  - Update order status
+POST   /api/orders/:id/query   - Send message to customer
+POST   /api/orders/:id/cancel  - Cancel order
+
+GET    /uploads/<path>         - Serve uploaded images
+```
+
+---
+
+## 🚀 **Quick Start**
+
+### **Prerequisites:**
+- Python 3.8 or higher
+- Telegram account
+- Bot token from @BotFather
+
+### **Installation:**
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Create .env file from template
+cp .env.example .env
+
+# 3. Edit .env and add your bot token + admin ID
+# (See OWNER_MANUAL.md for detailed instructions)
+
+# 4. Run the bot
+python bot.py
+
+# 5. Open index.html in browser
+# Double-click the file or open with your browser
+```
+
+**Success looks like:**
+```
+✅ Database initialized
+✅ Menu items seeded
+✅ Linked 10/10 photos to menu items
+✅ SOCHOW Bot Ready
+📡 API Server running on http://localhost:3000
+🤖 Telegram bot starting...
+```
+
+---
+
+## 🌐 **Deployment Options**
+
+**Local (Current Setup):**
+- Run on your computer
+- Dashboard accessible at `http://localhost:3000`
+- Must keep terminal window open
+- Good for: Testing, small operations, limited hours
+
+**Cloud Hosting (Recommended for 24/7):**
+- **Render.com** - Free tier, auto-sleeps when idle
+- **Railway.app** - $5/month free credit
+- **PythonAnywhere** - Free tier available
+
+See `OWNER_MANUAL.md` for deployment instructions.
+
+---
+
+## 📚 **Documentation**
+
+- **OWNER_MANUAL.md** - Complete setup guide, daily operations, troubleshooting
+- **README.md** (this file) - Project overview and technical reference
+
+---
+
+## 🔧 **Troubleshooting**
+
+| Problem | Solution |
+|---------|----------|
+| Bot not responding | Check `BOT_TOKEN` in `.env`, ensure bot is running |
+| Admin dashboard empty | Verify `bot.py` is running, check browser console |
+| Images not showing | Check `uploads/menu/` folder, verify file paths in database |
+| CORS errors | API must be on `http://localhost:3000` |
+| Database locked | Close any other programs accessing `sochow.db` |
+
+---
+
+## 📞 **Support**
+
+For detailed setup instructions, see **OWNER_MANUAL.md**
+
+**Common Questions:**
+- How to get bot token? → See OWNER_MANUAL.md Section 1
+- How to add menu items? → See OWNER_MANUAL.md Section 3
+- How to verify payments? → See OWNER_MANUAL.md Section 4
+- How to deploy to cloud? → See OWNER_MANUAL.md Section 6
