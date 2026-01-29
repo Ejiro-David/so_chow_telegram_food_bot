@@ -125,6 +125,10 @@
             margin-bottom: 20px;
         }
         
+        .dashboard-grid > .card {
+            width: 100%;
+        }
+        
         @media (max-width: 1024px) {
             .dashboard-grid {
                 grid-template-columns: 1fr;
@@ -279,6 +283,14 @@
             margin-bottom: 15px;
             border: 1px solid var(--border-dark);
             border-left-width: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        /* Admin order styling - gold border */
+        .order-card.admin-order {
+            border-left-color: #ffd700;
+            background: rgba(255, 215, 0, 0.05);
         }
         
         /* Status-specific border colors */
@@ -685,6 +697,7 @@
                         <input type="text" id="item-name" placeholder="Item name (e.g., Burger)">
                         <input type="number" id="item-price" placeholder="Price in Naira (e.g., 2500)">
                         <textarea id="item-description" placeholder="Description (optional)" rows="2"></textarea>
+                        <input type="file" id="item-image" accept="image/*" style="margin-top: 8px;">
                         <button class="btn-success" onclick="addMenuItem()">➕ Add Item</button>
                     </div>
 
@@ -839,12 +852,13 @@
         /* ============================================
            ADD MENU ITEM
            Creates new menu item from form inputs
-           Validates name and price, then sends to API
+           Validates name and price, uploads image, then sends to API
            ============================================ */
         async function addMenuItem() {
             const name = document.getElementById('item-name').value.trim();
             const price = parseInt(document.getElementById('item-price').value);
             const description = document.getElementById('item-description').value.trim();
+            const imageFile = document.getElementById('item-image').files[0];
 
             // Validation
             if (!name || !price) {
@@ -852,35 +866,67 @@
                 return;
             }
 
+            let imageUrl = null;
+            
+            // Upload image if provided
+            if (imageFile) {
+                const formData = new FormData();
+                formData.append('item_image', imageFile);
+                
+                try {
+                    const uploadResponse = await fetch(`${API_BASE}/menu/upload-item`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (uploadResponse.ok) {
+                        const uploadData = await uploadResponse.json();
+                        imageUrl = uploadData.imageUrl;
+                    } else {
+                        showAlert('Failed to upload image', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error uploading image:', error);
+                    showAlert('Error uploading image', 'error');
+                }
+            }
+
             // Construct item object
             const newItem = {
-                id: Date.now(),  // Temporary ID (will be replaced by DB auto-increment)
                 name,
                 price_naira: price,
                 description,
+                image_url: imageUrl,
                 available: true
             };
 
-            // TODO: Replace with actual API call
-            // Expected endpoint: POST /api/menu/items
-            // Body: JSON with item data
-            // Response: Created item with DB-generated ID
-            // await fetch(`${API_BASE}/menu/items`, { 
-            //     method: 'POST', 
-            //     headers: {'Content-Type': 'application/json'},
-            //     body: JSON.stringify(newItem)
-            // });
-
-            // Update local state (temporary until API is implemented)
-            menuItems.push(newItem);
-            renderMenuItems();
-            
-            // Clear form inputs
-            document.getElementById('item-name').value = '';
-            document.getElementById('item-price').value = '';
-            document.getElementById('item-description').value = '';
-            
-            showAlert('Menu item added!', 'success');
+            // Send to API
+            try {
+                const response = await fetch(`${API_BASE}/menu/items`, { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(newItem)
+                });
+                
+                if (response.ok) {
+                    const createdItem = await response.json();
+                    menuItems.push(createdItem);
+                    renderMenuItems();
+                    
+                    // Clear form inputs
+                    document.getElementById('item-name').value = '';
+                    document.getElementById('item-price').value = '';
+                    document.getElementById('item-description').value = '';
+                    document.getElementById('item-image').value = '';
+                    
+                    showAlert('Menu item added!', 'success');
+                } else {
+                    showAlert('Failed to add item', 'error');
+                }
+            } catch (error) {
+                console.error('Error adding item:', error);
+                showAlert('Error adding item', 'error');
+            }
         }
 
         /* ============================================
@@ -890,14 +936,21 @@
         async function deleteMenuItem(id) {
             if (!confirm('Delete this item?')) return;
             
-            // TODO: Replace with actual API call
-            // Expected endpoint: DELETE /api/menu/items/:id
-            // await fetch(`${API_BASE}/menu/items/${id}`, { method: 'DELETE' });
-            
-            // Update local state
-            menuItems = menuItems.filter(item => item.id !== id);
-            renderMenuItems();
-            showAlert('Item deleted', 'success');
+            // Send to API
+            try {
+                const response = await fetch(`${API_BASE}/menu/items/${id}`, { method: 'DELETE' });
+                
+                if (response.ok) {
+                    menuItems = menuItems.filter(item => item.id !== id);
+                    renderMenuItems();
+                    showAlert('Item deleted', 'success');
+                } else {
+                    showAlert('Failed to delete item', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting item:', error);
+                showAlert('Error deleting item', 'error');
+            }
         }
 
         /* ============================================
@@ -907,18 +960,26 @@
            ============================================ */
         async function toggleAvailability(id) {
             const item = menuItems.find(i => i.id === id);
-            item.available = !item.available;
+            const newAvailable = !item.available;
             
-            // TODO: Replace with actual API call
-            // Expected endpoint: PATCH /api/menu/items/:id
-            // Body: { available: boolean }
-            // await fetch(`${API_BASE}/menu/items/${id}`, { 
-            //     method: 'PATCH',
-            //     headers: {'Content-Type': 'application/json'},
-            //     body: JSON.stringify({available: item.available})
-            // });
-            
-            renderMenuItems();
+            // Send to API
+            try {
+                const response = await fetch(`${API_BASE}/menu/items/${id}`, { 
+                    method: 'PATCH',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({available: newAvailable})
+                });
+                
+                if (response.ok) {
+                    item.available = newAvailable;
+                    renderMenuItems();
+                } else {
+                    showAlert('Failed to update availability', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating:', error);
+                showAlert('Error updating availability', 'error');
+            }
         }
 
         /* ============================================
@@ -968,26 +1029,27 @@
            - Verified payments → orders queue section
            ============================================ */
         async function loadOrders() {
-            // TODO: Replace with actual API call
-            // Expected endpoint: GET /api/orders
-            // Response: Array of order objects with full details
-            // const response = await fetch(`${API_BASE}/orders`);
-            // orders = await response.json();
-            
-            // Mock data for testing (remove when API is ready)
-            orders = [
-                {
-                    id: 1,
-                    order_id: 'SOCHOW-20251123-0001',
-                    customer: { name: 'Ada Obi', telegram_id: '@adaobi' },
-                    items: [{ name: 'Burger', qty: 1 }, { name: 'Juice', qty: 2 }],
-                    total_naira: 3900,
-                    payment_status: 'pending',  // pending | verified | denied
-                    order_status: 'processing', // processing | prepared | out-for-delivery | delivered | cancelled
-                    receipt_url: 'https://via.placeholder.com/300x400/e63946/ffffff?text=Receipt',
-                    created_at: new Date().toISOString()
+            try {
+                const response = await fetch(`${API_BASE}/orders`);
+                if (response.ok) {
+                    const newOrders = await response.json();
+                    
+                    // Check for new orders (for notifications)
+                    if (orders.length > 0 && newOrders.length > orders.length) {
+                        const newOrderCount = newOrders.length - orders.length;
+                        showNotification(`${newOrderCount} new order${newOrderCount > 1 ? 's' : ''}!`);
+                        playNotificationSound();
+                    }
+                    
+                    orders = newOrders;
+                } else {
+                    console.error('Failed to load orders');
+                    orders = [];
                 }
-            ];
+            } catch (error) {
+                console.error('Error loading orders:', error);
+                orders = [];
+            }
             
             renderOrders();   // Update UI
             updateStats();    // Update dashboard stats
@@ -1033,13 +1095,14 @@
            ============================================ */
         function renderOrderCard(order) {
             const statusClass = order.order_status.replace(/\s+/g, '-').toLowerCase();
+            const isAdminOrder = order.customer && order.customer.telegram_id === '8560918438';
             return `
-                <div class="order-card ${statusClass}">
+                <div class="order-card ${statusClass} ${isAdminOrder ? 'admin-order' : ''}">
                     <div class="order-header">
-                        <span class="order-id">${order.order_id}</span>
+                        <span class="order-id">${order.order_id} ${isAdminOrder ? '🔑' : ''}</span>
                         <span class="order-status ${statusClass}">${order.order_status}</span>
                     </div>
-                    <div><strong>Customer:</strong> ${order.customer.name} (${order.customer.telegram_id})</div>
+                    <div><strong>Customer:</strong> ${order.customer.name} ${isAdminOrder ? '(ADMIN)' : `(${order.customer.telegram_id})`}</div>
                     <div class="order-items">
                         ${order.items.map(i => `${i.name} x${i.qty}`).join(', ')}
                     </div>
@@ -1102,19 +1165,34 @@
            - Denied: payment_status → denied, bot asks customer to reupload
            ============================================ */
         async function verifyPayment(orderId, approved) {
-            const order = orders.find(o => o.id === orderId);
-            
-            if (approved) {
-                order.payment_status = 'verified';
-                order.order_status = 'processing';
-                showAlert(`Payment approved for ${order.order_id}`, 'success');
-            } else {
-                order.payment_status = 'denied';
-                showAlert(`Payment denied for ${order.order_id}`, 'danger');
+            try {
+                const response = await fetch(`${API_BASE}/orders/${orderId}/verify`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ verified: approved })
+                });
+                
+                if (response.ok) {
+                    const order = orders.find(o => o.id === orderId);
+                    
+                    if (approved) {
+                        order.payment_status = 'verified';
+                        order.order_status = 'processing';
+                        showAlert(`Payment approved for ${order.order_id}`, 'success');
+                    } else {
+                        order.payment_status = 'denied';
+                        showAlert(`Payment denied for ${order.order_id}`, 'danger');
+                    }
+                    
+                    renderOrders();
+                    updateStats();
+                } else {
+                    showAlert('Failed to update payment status', 'error');
+                }
+            } catch (error) {
+                console.error('Error verifying payment:', error);
+                showAlert('Error verifying payment', 'error');
             }
-            
-            renderOrders();
-            updateStats();
         }
 
         /* ============================================
@@ -1138,18 +1216,34 @@
            For "out-for-delivery", prompts for rider contact
            ============================================ */
         async function updateOrderStatus(orderId, newStatus) {
-            const order = orders.find(o => o.id === orderId);
-            order.order_status = newStatus;
+            let riderContact = null;
             
             if (newStatus === 'out-for-delivery') {
-                const riderContact = prompt('Enter rider contact number:');
-                if (riderContact) {
-                    order.rider_contact = riderContact;
-                }
+                riderContact = prompt('Enter rider contact number:');
+                if (!riderContact) return;
             }
             
-            renderOrders();
-            showAlert(`Order ${order.order_id} updated to ${newStatus}`, 'success');
+            try {
+                const response = await fetch(`${API_BASE}/orders/${orderId}/status`, {
+                    method: 'PATCH',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ status: newStatus, rider_contact: riderContact })
+                });
+                
+                if (response.ok) {
+                    const order = orders.find(o => o.id === orderId);
+                    order.order_status = newStatus;
+                    if (riderContact) order.rider_contact = riderContact;
+                    
+                    renderOrders();
+                    showAlert(`Order ${order.order_id} updated to ${newStatus}`, 'success');
+                } else {
+                    showAlert('Failed to update order status', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating order:', error);
+                showAlert('Error updating order status', 'error');
+            }
         }
 
         /* ============================================
@@ -1160,10 +1254,23 @@
         async function cancelOrder(orderId) {
             if (!confirm('Cancel this order?')) return;
             
-            const order = orders.find(o => o.id === orderId);
-            order.order_status = 'cancelled';
-            renderOrders();
-            showAlert(`Order ${order.order_id} cancelled`, 'danger');
+            try {
+                const response = await fetch(`${API_BASE}/orders/${orderId}/cancel`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    const order = orders.find(o => o.id === orderId);
+                    order.order_status = 'cancelled';
+                    renderOrders();
+                    showAlert(`Order ${order.order_id} cancelled`, 'danger');
+                } else {
+                    showAlert('Failed to cancel order', 'error');
+                }
+            } catch (error) {
+                console.error('Error cancelling order:', error);
+                showAlert('Error cancelling order', 'error');
+            }
         }
 
         /* ============================================
@@ -1332,13 +1439,62 @@
 
         /* ============================================
            AUTO REFRESH / POLLING
-           Polls for new orders every 30 seconds
+           Polls for new orders every 15 seconds
            ============================================ */
         function setupAutoRefresh() {
             setInterval(() => {
                 loadOrders();
-            }, 30000); // 30 seconds
+            }, 15000); // 15 seconds
         }
+
+        /* ============================================
+           NOTIFICATION SYSTEM
+           Desktop notifications + sound for new orders
+           ============================================ */
+        function showNotification(message) {
+            // Request permission if not already granted
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+            
+            // Show desktop notification if permitted
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('SOCHOW Order System', {
+                    body: message,
+                    icon: '/uploads/sochow-logo.png',
+                    badge: '/uploads/sochow-logo.png'
+                });
+            }
+            
+            // Also show in-page alert
+            showAlert(message, 'success');
+        }
+
+        function playNotificationSound() {
+            // Create simple notification beep
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        }
+
+        // Request notification permission on page load
+        window.addEventListener('load', () => {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        });
 
         /* ============================================
            MODAL CLICK OUTSIDE TO CLOSE

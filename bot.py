@@ -105,6 +105,7 @@ def init_db():
         user_id INTEGER NOT NULL,
         image_url TEXT NOT NULL,
         admin_verified INTEGER DEFAULT 0,
+        verified_at TIMESTAMP,
         admin_notes TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (order_id) REFERENCES orders(id),
@@ -131,6 +132,28 @@ def init_db():
     conn.commit()
     conn.close()
     print('✅ Database initialized')
+    
+    # Run migrations for existing databases
+    migrate_database()
+
+def migrate_database():
+    """Add new columns to existing tables"""
+    conn = sqlite3.connect('sochow.db')
+    c = conn.cursor()
+    
+    try:
+        # Check if verified_at column exists in receipts table
+        c.execute("PRAGMA table_info(receipts)")
+        columns = [col[1] for col in c.fetchall()]
+        
+        if 'verified_at' not in columns:
+            c.execute("ALTER TABLE receipts ADD COLUMN verified_at TIMESTAMP")
+            print('✅ Added verified_at column to receipts table')
+    except Exception as e:
+        print(f'⚠️  Migration note: {e}')
+    
+    conn.commit()
+    conn.close()
 
 # Initialize database on startup
 init_db()
@@ -258,9 +281,40 @@ def generate_order_id():
     sequence = str(count + 1).zfill(4)
     return f'SOCHOW-{date_str}-{sequence}'
 
+def cleanup_old_receipts():
+    """Delete receipt files older than 7 days after verification"""
+    db = get_db()
+    # Find receipts verified more than 7 days ago
+    old_receipts = db.execute('''SELECT id, image_url FROM receipts 
+                                 WHERE admin_verified = 1 
+                                 AND verified_at IS NOT NULL
+                                 AND julianday('now') - julianday(verified_at) > 7
+                                 AND image_url IS NOT NULL''').fetchall()
+    
+    deleted_count = 0
+    for receipt in old_receipts:
+        # Delete the physical file
+        file_path = receipt['image_url'].lstrip('/')
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+                deleted_count += 1
+            except Exception as e:
+                print(f'⚠️  Could not delete {file_path}: {e}')
+        
+        # Clear the image_url in database (keep record but mark file as deleted)
+        db.execute('UPDATE receipts SET image_url = NULL WHERE id = ?', (receipt['id'],))
+    
+    db.commit()
+    db.close()
+    
+    if deleted_count > 0:
+        print(f'🧹 Cleaned up {deleted_count} old receipt files (7+ days)')
+
 # Call seeding functions
 seed_menu_items()
 link_menu_photos()
+cleanup_old_receipts()  # Run cleanup on startup
 
 print('✅ SOCHOW Bot Ready')
 
@@ -495,9 +549,14 @@ async def create_order(update, user, state):
     total = calc_cart_total(state['cart_id'])
     order_id = generate_order_id()
     
-    db.execute('''INSERT INTO orders (user_id, cart_id, order_id, total_naira, delivery_address, contact_number)
-                  VALUES (?, ?, ?, ?, ?, ?)''',
-               (user['id'], state['cart_id'], order_id, total, state['address'], state['phone']))
+    # Check if this is an admin order
+    is_admin = str(user['telegram_id']) == str(ADMIN_CHAT_ID)
+    initial_payment_status = 'verified' if is_admin else 'pending'
+    initial_order_status = 'processing' if is_admin else 'processing'
+    
+    db.execute('''INSERT INTO orders (user_id, cart_id, order_id, total_naira, delivery_address, contact_number, payment_status, order_status)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+               (user['id'], state['cart_id'], order_id, total, state['address'], state['phone'], initial_payment_status, initial_order_status))
     
     db.execute('UPDATE carts SET status = ? WHERE id = ?', ('checked_out', state['cart_id']))
     db.commit()
@@ -511,11 +570,16 @@ async def create_order(update, user, state):
     text += f"\n*Total:* ₦{total:,}\n"
     text += f"*Delivery:* {state['address']}\n"
     text += f"*Contact:* {state['phone']}\n\n"
-    text += f"*Payment:*\n"
-    text += f"Bank: {os.getenv('PAYMENT_BANK', 'First Bank')}\n"
-    text += f"Account: {os.getenv('PAYMENT_ACCOUNT', '1234567890')}\n"
-    text += f"Name: {os.getenv('PAYMENT_NAME', 'SOCHOW')}\n\n"
-    text += "📤 After payment, send your receipt image to this chat."
+    
+    if is_admin:
+        text += "🔑 *ADMIN ORDER* - Auto-approved\n"
+        text += "Your order is being processed."
+    else:
+        text += f"*Payment:*\n"
+        text += f"Bank: {os.getenv('PAYMENT_BANK', 'First Bank')}\n"
+        text += f"Account: {os.getenv('PAYMENT_ACCOUNT', '1234567890')}\n"
+        text += f"Name: {os.getenv('PAYMENT_NAME', 'SOCHOW')}\n\n"
+        text += "📤 After payment, send your receipt image to this chat."
     
     await update.message.reply_text(text, parse_mode='Markdown')
 
@@ -601,6 +665,11 @@ async def show_help(query):
 app = Flask(__name__)
 CORS(app)
 
+@app.route('/')
+def index():
+    """Serve admin dashboard"""
+    return send_from_directory('.', 'index.html')
+
 @app.route('/uploads/<path:filename>')
 def serve_upload(filename):
     """Serve uploaded files from uploads/, uploads/menu/, or uploads/receipts/"""
@@ -617,16 +686,16 @@ def get_menu_items():
 def add_menu_item():
     data = request.json
     db = get_db()
-    cursor = db.execute('''INSERT INTO menu_items (name, price_naira, description, available) 
-                           VALUES (?, ?, ?, ?)''',
+    cursor = db.execute('''INSERT INTO menu_items (name, price_naira, description, image_url, available) 
+                           VALUES (?, ?, ?, ?, ?)''',
                         (data['name'], data['price_naira'], data.get('description'), 
-                         1 if data.get('available', True) else 0))
+                         data.get('image_url'), 1 if data.get('available', True) else 0))
     db.commit()
     item = db.execute('SELECT * FROM menu_items WHERE id = ?', (cursor.lastrowid,)).fetchone()
     db.close()
     return jsonify(dict(item))
 
-@app.route('/api/menu/items', methods=['PATCH'])
+@app.route('/api/menu/items/<int:item_id>', methods=['PATCH'])
 def update_menu_item(item_id):
     data = request.json
     db = get_db()
@@ -664,6 +733,23 @@ def upload_menu():
     
     return jsonify({'imageUrl': image_url})
 
+@app.route('/api/menu/upload-item', methods=['POST'])
+def upload_menu_item_image():
+    if 'item_image' not in request.files:
+        return jsonify({'error': 'No file'}), 400
+    
+    file = request.files['item_image']
+    # Use sanitized filename
+    original_name = file.filename
+    ext = original_name.rsplit('.', 1)[1] if '.' in original_name else 'jpg'
+    filename = f"item_{datetime.now().timestamp()}.{ext}"
+    
+    os.makedirs('uploads/menu', exist_ok=True)
+    filepath = f"uploads/menu/{filename}"
+    file.save(filepath)
+    
+    return jsonify({'imageUrl': f"/uploads/menu/{filename}"})
+
 @app.route('/api/orders', methods=['GET'])
 def get_orders():
     db = get_db()
@@ -697,7 +783,8 @@ def verify_payment(order_id):
     if data.get('verified'):
         db.execute('''UPDATE orders SET payment_status = 'verified', order_status = 'processing', 
                       updated_at = CURRENT_TIMESTAMP WHERE id = ?''', (order_id,))
-        db.execute('UPDATE receipts SET admin_verified = 1 WHERE order_id = ?', (order_id,))
+        db.execute('''UPDATE receipts SET admin_verified = 1, verified_at = CURRENT_TIMESTAMP 
+                      WHERE order_id = ?''', (order_id,))
         
         # Notify customer
         order = db.execute('SELECT * FROM orders WHERE id = ?', (order_id,)).fetchone()
@@ -794,6 +881,8 @@ telegram_app = None
 
 if __name__ == '__main__':
     print('✅ SOCHOW Bot Starting...')
+    print(f'🔑 Bot Token: {BOT_TOKEN[:10]}...')
+    print(f'👤 Admin ID: {ADMIN_CHAT_ID}')
     os.makedirs('uploads', exist_ok=True)
     
     flask_thread = Thread(target=run_flask, daemon=True)
@@ -807,4 +896,13 @@ if __name__ == '__main__':
     telegram_app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     
     print('🤖 Telegram bot starting...')
-    telegram_app.run_polling()
+    print('✅ Bot handlers registered')
+    print('📱 Listening for messages...')
+    
+    try:
+        telegram_app.run_polling(allowed_updates=Update.ALL_TYPES)
+    except Exception as e:
+        print(f'❌ Telegram bot error: {e}')
+        import traceback
+        traceback.print_exc()
+
